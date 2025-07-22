@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GameServer WebSocket Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+        }
+        .connected { 
+            background-color: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb; 
+        }
+        .disconnected { 
+            background-color: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb; 
+        }
+        button { 
+            padding: 10px 15px; 
+            margin: 5px; 
+            border: none; 
+            border-radius: 3px; 
+            cursor: pointer; 
+        }
+        .connect { background-color: #28a745; color: white; }
+        .disconnect { background-color: #dc3545; color: white; }
+        .send { background-color: #007bff; color: white; }
+        #log { 
+            background-color: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            padding: 10px; 
+            height: 300px; 
+            overflow-y: auto; 
+            font-family: monospace; 
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>GameServer WebSocket Test Client</h1>
+    
+    <div id="status" class="status disconnected">
+        Status: Disconnected
+    </div>
+    
+    <div>
+        <strong>Server URL:</strong> 
+        <input type="text" id="serverUrl" value="ws://localhost:8080/ws" style="width: 300px;">
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <button id="connectBtn" class="connect" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" class="disconnect" onclick="disconnect()" disabled>Disconnect</button>
+        <button id="sendBtn" class="send" onclick="sendTestMessage()" disabled>Send Test Message</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div>
+        <h3>Connection Log:</h3>
+        <div id="log">Waiting for connection...\n</div>
+    </div>
+
+    <script>
+        let ws = null;
+        let connected = false;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(isConnected) {
+            connected = isConnected;
+            const statusDiv = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            if (isConnected) {
+                statusDiv.textContent = 'Status: Connected';
+                statusDiv.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                sendBtn.disabled = false;
+            } else {
+                statusDiv.textContent = 'Status: Disconnected';
+                statusDiv.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                sendBtn.disabled = true;
+            }
+        }
+        
+        function connect() {
+            const url = document.getElementById('serverUrl').value;
+            log(`Connecting to ${url}...`);
+            
+            try {
+                ws = new WebSocket(url);
+                
+                ws.onopen = function(event) {
+                    log('Connected to game server!');
+                    updateStatus(true);
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.type === 'tick') {
+                            log(`TICK: ${data.tick} | Clients: ${data.clients_count} | Time: ${data.timestamp}`);
+                        } else if (data.type === 'welcome') {
+                            log(`WELCOME: ${data.message} | Current Tick: ${data.tick}`);
+                        } else if (data.type === 'echo') {
+                            log(`ECHO: Server echoed message at tick ${data.tick}`);
+                        } else {
+                            log(`MESSAGE: ${JSON.stringify(data)}`);
+                        }
+                    } catch (e) {
+                        log(`RAW MESSAGE: ${event.data}`);
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    log(`Connection closed: ${event.code} - ${event.reason || 'No reason given'}`);
+                    updateStatus(false);
+                };
+                
+                ws.onerror = function(error) {
+                    log(`WebSocket error: ${error.message || 'Unknown error'}`);
+                    updateStatus(false);
+                };
+                
+            } catch (error) {
+                log(`Failed to connect: ${error.message}`);
+                updateStatus(false);
+            }
+        }
+        
+        function disconnect() {
+            if (ws) {
+                log('Disconnecting...');
+                ws.close();
+                ws = null;
+            }
+        }
+        
+        function sendTestMessage() {
+            if (ws && connected) {
+                const message = {
+                    type: 'test',
+                    message: 'Hello from HTML test client!',
+                    timestamp: Date.now()
+                };
+                
+                ws.send(JSON.stringify(message));
+                log(`SENT: ${JSON.stringify(message)}`);
+            } else {
+                log('ERROR: Not connected to server');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+        
+        // Initialize UI
+        updateStatus(false);
+    </script>
+</body>
+</html>
