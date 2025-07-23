@@ -8,14 +8,6 @@ public class GameManager : MonoBehaviour
     public GameServerClient serverClient;
     
     [Header("UI References (Optional - Connect via code or inspector)")]
-    // Note: UI components removed to avoid UnityEngine.UI dependency issues
-    // You can add these back once the UI module is properly imported
-    // public Text statusText;
-    // public Text tickText;
-    // public Text clientCountText;
-    // public Button connectButton;
-    // public Button disconnectButton;
-    // public Button sendTestButton;
     
     [Header("Auto Setup")]
     public bool createServerClientAutomatically = true;
@@ -104,49 +96,15 @@ public class GameManager : MonoBehaviour
     private void UpdateUI()
     {
         if (serverClient == null) return;
-        
-        // UI updates disabled until UnityEngine.UI is properly imported
-        // Uncomment these lines once you have UI components properly set up:
-        
-        // // Update status text
-        // if (statusText != null)
-        // {
-        //     statusText.text = serverClient.isConnected ? "Connected" : "Disconnected";
-        //     statusText.color = serverClient.isConnected ? Color.green : Color.red;
-        // }
-        // 
-        // // Update tick text
-        // if (tickText != null)
-        // {
-        //     tickText.text = $"Tick: {serverClient.currentTick}";
-        // }
-        // 
-        // // Update client count text
-        // if (clientCountText != null)
-        // {
-        //     clientCountText.text = $"Clients: {serverClient.connectedClients}";
-        // }
-        // 
-        // // Update button states
-        // if (connectButton != null)
-        //     connectButton.interactable = !serverClient.isConnected;
-        //     
-        // if (disconnectButton != null)
-        //     disconnectButton.interactable = serverClient.isConnected;
-        //     
-        // if (sendTestButton != null)
-        //     sendTestButton.interactable = serverClient.isConnected;
     }
     
     private void Update()
     {
-        // Update UI every frame (you might want to optimize this)
         UpdateUI();
     }
     
     private void OnDestroy()
     {
-        // Unsubscribe from events to prevent memory leaks
         if (serverClient != null)
         {
             serverClient.OnConnected -= OnServerConnected;
@@ -155,7 +113,6 @@ public class GameManager : MonoBehaviour
         }
     }
     
-    // Public methods for testing or external use
     public void ConnectToServer()
     {
         serverClient?.Connect();
