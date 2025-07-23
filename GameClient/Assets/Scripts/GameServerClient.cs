@@ -9,6 +9,13 @@ using UnityEngine;
 using Newtonsoft.Json;
 
 [System.Serializable]
+public class UnitLocation
+{
+    public float x;
+    public float y;
+}
+
+[System.Serializable]
 public class ServerMessage
 {
     public string type;
@@ -16,6 +23,8 @@ public class ServerMessage
     public int tick;
     public float timestamp;
     public int clients_count;
+    public UnitLocation unit_location;
+    public bool position_updated;
     public object original;
 }
 

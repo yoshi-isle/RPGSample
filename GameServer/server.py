@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import random
 import time
 from typing import Set
 from aiohttp import web, WSMsgType, web_ws
@@ -15,6 +16,10 @@ class GameServer:
         self.clients: Set[web_ws.WebSocketResponse] = set()
         self.tick_count = 0
         self.running = False
+        # Unit location tracking
+        self.unit_x = random.uniform(-10, 10)
+        self.unit_y = random.uniform(-10, 10)
+        self.last_position_update_tick = 0
         
     async def add_client(self, ws: web_ws.WebSocketResponse):
         """Add a new client to the game"""
@@ -24,7 +29,7 @@ class GameServer:
         # Send welcome message
         await self.send_to_client(ws, {
             "type": "welcome",
-            "message": "Connected to game server",
+            "message": "Connected to game server!",
             "tick": self.tick_count
         })
     
@@ -55,20 +60,37 @@ class GameServer:
             else:
                 await self.send_to_client(ws, data)
     
+    def randomize_unit_location(self):
+        """Randomize unit location within bounds (-10 < x < 10, -10 < y < 10)"""
+        self.unit_x = random.uniform(-9.99, 9.99)  # Slightly inside bounds to avoid edge cases
+        self.unit_y = random.uniform(-9.99, 9.99)
+        logger.info(f"Unit location randomized to ({self.unit_x:.2f}, {self.unit_y:.2f})")
+    
+    def get_unit_location(self):
+        """Get current unit location"""
+        return {"x": self.unit_x, "y": self.unit_y}
+    
     async def game_tick(self):
         """Main game tick - runs every 0.4 seconds"""
         self.tick_count += 1
         
-        # Broadcast tick to all clients
+        # Update unit location every 4 ticks
+        if self.tick_count % 4 == 0:
+            self.randomize_unit_location()
+            self.last_position_update_tick = self.tick_count
+        
+        # Broadcast tick to all clients with unit location
         tick_data = {
             "type": "tick",
             "tick": self.tick_count,
             "timestamp": time.time(),
-            "clients_count": len(self.clients)
+            "clients_count": len(self.clients),
+            "unit_location": self.get_unit_location(),
+            "position_updated": self.tick_count % 4 == 0
         }
         
         await self.broadcast(tick_data)
-        logger.info(f"Tick {self.tick_count} - {len(self.clients)} clients")
+        logger.info(f"Tick {self.tick_count} - {len(self.clients)} clients - Unit at ({self.unit_x:.2f}, {self.unit_y:.2f})")
     
     async def start_game_loop(self):
         """Start the main game loop"""
@@ -77,7 +99,7 @@ class GameServer:
         
         while self.running:
             await self.game_tick()
-            await asyncio.sleep(0.4)  # 0.4 second tick
+            await asyncio.sleep(0.4)
     
     def stop(self):
         """Stop the game loop"""
@@ -132,6 +154,16 @@ async def health_check(request):
         "uptime": time.time()
     })
 
+async def get_unit_location(request):
+    """Get current unit location endpoint"""
+    location = game_server.get_unit_location()
+    return web.json_response({
+        "unit_location": location,
+        "tick": game_server.tick_count,
+        "last_position_update_tick": game_server.last_position_update_tick,
+        "position_updated_this_tick": game_server.tick_count % 4 == 0
+    })
+
 async def init_app():
     """Initialize the web application"""
     app = web.Application()
@@ -149,6 +181,7 @@ async def init_app():
     # Add routes
     app.router.add_get('/ws', websocket_handler)
     app.router.add_get('/health', health_check)
+    app.router.add_get('/unit', get_unit_location)
     
     # Add CORS to all routes
     for route in list(app.router.routes()):
@@ -173,6 +206,7 @@ async def main():
     logger.info("Game server running on http://0.0.0.0:8080")
     logger.info("WebSocket endpoint: ws://localhost:8080/ws")
     logger.info("Health check: http://localhost:8080/health")
+    logger.info("Unit location: http://localhost:8080/unit")
     
     # Keep the server running
     try:

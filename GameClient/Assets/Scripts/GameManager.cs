@@ -1,20 +1,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
     [Header("Server Connection")]
     public GameServerClient serverClient;
     
-    [Header("UI References (Optional)")]
-    public Text statusText;
-    public Text tickText;
-    public Text clientCountText;
-    public Button connectButton;
-    public Button disconnectButton;
-    public Button sendTestButton;
+    [Header("UI References (Optional - Connect via code or inspector)")]
+    // Note: UI components removed to avoid UnityEngine.UI dependency issues
+    // You can add these back once the UI module is properly imported
+    // public Text statusText;
+    // public Text tickText;
+    // public Text clientCountText;
+    // public Button connectButton;
+    // public Button disconnectButton;
+    // public Button sendTestButton;
     
     [Header("Auto Setup")]
     public bool createServerClientAutomatically = true;
@@ -51,14 +52,7 @@ public class GameManager : MonoBehaviour
     
     private void SetupUI()
     {
-        if (connectButton != null)
-            connectButton.onClick.AddListener(() => serverClient?.Connect());
-            
-        if (disconnectButton != null)
-            disconnectButton.onClick.AddListener(() => serverClient?.Disconnect());
-            
-        if (sendTestButton != null)
-            sendTestButton.onClick.AddListener(() => serverClient?.SendTestMessage());
+        Debug.Log("[GameManager] UI setup skipped - add UI components manually once UnityEngine.UI is available");
     }
     
     private void OnServerConnected()
@@ -79,7 +73,16 @@ public class GameManager : MonoBehaviour
         switch (message.type)
         {
             case "tick":
-                Debug.Log($"[GameManager] Game Tick Received: {message.tick} (Clients: {message.clients_count})");
+                string locationInfo = "";
+                if (message.unit_location != null)
+                {
+                    locationInfo = $" - Unit Location: ({message.unit_location.x:F2}, {message.unit_location.y:F2})";
+                    if (message.position_updated)
+                    {
+                        locationInfo += " [UPDATED]";
+                    }
+                }
+                Debug.Log($"[GameManager] Game Tick Received: {message.tick} (Clients: {message.clients_count}){locationInfo}");
                 break;
                 
             case "welcome":
@@ -102,34 +105,37 @@ public class GameManager : MonoBehaviour
     {
         if (serverClient == null) return;
         
-        // Update status text
-        if (statusText != null)
-        {
-            statusText.text = serverClient.isConnected ? "Connected" : "Disconnected";
-            statusText.color = serverClient.isConnected ? Color.green : Color.red;
-        }
+        // UI updates disabled until UnityEngine.UI is properly imported
+        // Uncomment these lines once you have UI components properly set up:
         
-        // Update tick text
-        if (tickText != null)
-        {
-            tickText.text = $"Tick: {serverClient.currentTick}";
-        }
-        
-        // Update client count text
-        if (clientCountText != null)
-        {
-            clientCountText.text = $"Clients: {serverClient.connectedClients}";
-        }
-        
-        // Update button states
-        if (connectButton != null)
-            connectButton.interactable = !serverClient.isConnected;
-            
-        if (disconnectButton != null)
-            disconnectButton.interactable = serverClient.isConnected;
-            
-        if (sendTestButton != null)
-            sendTestButton.interactable = serverClient.isConnected;
+        // // Update status text
+        // if (statusText != null)
+        // {
+        //     statusText.text = serverClient.isConnected ? "Connected" : "Disconnected";
+        //     statusText.color = serverClient.isConnected ? Color.green : Color.red;
+        // }
+        // 
+        // // Update tick text
+        // if (tickText != null)
+        // {
+        //     tickText.text = $"Tick: {serverClient.currentTick}";
+        // }
+        // 
+        // // Update client count text
+        // if (clientCountText != null)
+        // {
+        //     clientCountText.text = $"Clients: {serverClient.connectedClients}";
+        // }
+        // 
+        // // Update button states
+        // if (connectButton != null)
+        //     connectButton.interactable = !serverClient.isConnected;
+        //     
+        // if (disconnectButton != null)
+        //     disconnectButton.interactable = serverClient.isConnected;
+        //     
+        // if (sendTestButton != null)
+        //     sendTestButton.interactable = serverClient.isConnected;
     }
     
     private void Update()
